@@ -8,7 +8,7 @@
 
 // async wrapper function using promises 
 const asyncHandler = (requestHandler) =>{
-  (req,res,next)=>{
+ return (req,res,next)=>{
 
     Promise.resolve(requestHandler(req,res,next))
     //Ab yeh jo error hai woh kafi baar ap bhejoge aur error ka koi structure nahi hai hamare pass man kara status code bhej diya man kara nahi bheja

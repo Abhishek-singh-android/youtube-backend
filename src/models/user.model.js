@@ -76,7 +76,7 @@ userSchema.pre("save", async function(next){
     // ab mein password field ko lunga aur jab bhi password save ho raha ho use encrypt kar do toh password mein le lunga this.password se
     // ab bcrypt ki help se yeh encrypt kar dega toh yeh hash ka use kar raha hai ab hash karne ke liye isse chahiye hota hai ki kise hash karna hai
     // bata do toh hume password ko hash karna hai toh this.password ab dusre parameter main hume batana hota hai ki kitne rounds lagau 
-    this.password = bcrypt.hash(this.password,10) 
+    this.password = await bcrypt.hash(this.password,10) 
     next()
 }) 
 

@@ -37,5 +37,19 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
 
+// routes import 
+import userRouter from './routers/user.routes'
+
+// routes declaration 
+// toh pehle hamara kaam app.get likh kar ho raha tha kyunki app ke through pehle hum routes aur controller ek hi file mein likh rahe the lekin kyunki ab
+// cheeje seprate kar di hai router ke liye alag folder bana diya hai alag file mein routes likh rahe hai toh ab router ko lane ke liye middleware lana padega
+// isliye app.get ki jagah hum app.use ka use kar rahe hai toh ab app.use mein pahle parameter mein routes likhenge ki kis route par jana hai aur dusra parameter
+// ki konsa router activate hona chahiye jaise yaha hume "/users" route par jana hai aur usme userRouter ko  activate karana hai
+// toh ab jaise koi bhi request "/users" par aayegi toh hum control de denge userRouter par aur userRouter jayega userRoter wali file mein 
+// ab userRoute mein aane ke baad aap decide karte ho ki kis route par user ko le jana hai matlab userRoute mein toh aa gaye ab uske aage further bhi toh jana hai
+// jaise user ke ander registation route bhi hoga,signup route,login route toh yeh saare routes userRouter mein honge 
+// ab agar aap api define kar rahe hai toh aapko batana hota hai ki aap api bana rahe hai aur harari api ka version kya hai toh hum "/users" na likh kar
+// hum "/api/v1/users" likhenge isse code mein toh jayada kuch fark nahi padega lekin ek achi practice hai ki pehle api fir version fir api ka naam likhe
+app.use("/api/v1/users",userRouter)
 
 export { app };
