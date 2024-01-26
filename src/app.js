@@ -38,7 +38,7 @@ app.use(cookieParser())
 
 
 // routes import 
-import userRouter from './routers/user.routes'
+import userRouter from './routers/user.routes.js'
 
 // routes declaration 
 // toh pehle hamara kaam app.get likh kar ho raha tha kyunki app ke through pehle hum routes aur controller ek hi file mein likh rahe the lekin kyunki ab

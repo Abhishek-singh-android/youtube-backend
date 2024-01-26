@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller";
-import {upload} from "../middlewares/multer.middleware"
+import { registerUser } from "../controllers/user.controller.js";
+import {upload} from "../middlewares/multer.middleware.js"
 const router = Router()
 
 // yaha jo bhi userRoute se aa rahe honge unhe hum "/register" route par forward kar denge ab route likhne ke baad hum batate hai ki konsa method hum is route

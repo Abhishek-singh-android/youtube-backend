@@ -20,7 +20,7 @@ const userSchema = new Schema({
         lowercase:true,
         trim:true,   
     },
-    fullname:{
+    fullName:{
         type:String,
         required:true,
         trim:true,
@@ -38,7 +38,7 @@ const userSchema = new Schema({
     watchHistory:[
         {
             // ab hum bolenge mongoose se ki mujhe ek Schema do objectId type ka aur kyunki hum video model ko connect kar rahe hai toh ref mein Video de denge
-            type:Schema.types.ObjectId ,
+            type:Schema.Types.ObjectId ,
             ref:"Video" 
         },
     ],

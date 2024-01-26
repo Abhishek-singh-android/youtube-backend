@@ -1,10 +1,22 @@
-import { User } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import {asyncHandler} from "../utils/asyncHandler";
-import { uploadOnCloudinary } from "../utils/cloudinary";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-// 
+// steps to register a user ( or algorithm to register user )
+
+// step1: get user details from frontend
+// step2: validation - not empty
+// step3: check if user already exist: username,email
+// step4: check for images, check for avatar
+// step5: upload them on cloudinary, avatar
+// step6: create user object- create entry on db
+// step7: remove password and refreshToken fields response
+// step8: check for user creation
+// step9: return res
+
+
 const registerUser = asyncHandler(async(req,res)=>{
     // get user details from frontend
     // sari user details aapko req.body ke ander milti hai ab jo data req.body se aa raha hai usse hum extract kar sakte hai yani destructure kar lete hai
@@ -19,7 +31,7 @@ const registerUser = asyncHandler(async(req,res)=>{
     // ab hum check karenge ki user pehle se toh exist nahi karta hai toh user pehle se exist karta hai ya nahi yeh check karne ke liye hume database
     // mein check karna padega ki yeh user pehle se exist toh nahi hai database mein toh hum User model ka use kar lenge kyunki user model directly contact 
     // kar raha hai mongodb database se aur kyunki User model directly mongoose ke through bana hai
-   const existedUser = User.findOne({
+   const existedUser = await User.findOne({
         // ab hume check karna hai ya toh username mil jaye ya toh email mil jaye ho sakta hai email alag ho lekin username same ho toh username same nahi hona chahiye toh mein error dunga ki
         // username already exist toh hum yaha use lene wale hai operator ka toh yaha hamari condition ke hisab se hum "or" operator use kar lenge
         $or:[{username},{email}]
@@ -39,10 +51,19 @@ const registerUser = asyncHandler(async(req,res)=>{
     const avatarLocalPath = req.files?.avatar[0]?.path;
 
     // ab coverImage ka bhi local path le lete hai
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
+    }
+
+    let coverImageLocalPath;
+
+    // yaha hum check kar rahe hai ki user ne coverImage select ki ya nahi upload karne ke liye toh hum check kar rahe hai 
+    // agar req.files true hai matlab files mein kuch toh aaya hai fir coverImage check kar rahe hai ki kya woh array ke format mein hai aur last mein agar woh array format mein hai 
+    // toh uski length chack kar rahe hai agar length greater hai 0 se matlab array mein kuch toh aaya hai tabhi length increment hui
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path;
     }
 
     // ab hume images ko upload karna hai cloudinary par
@@ -80,7 +101,10 @@ const registerUser = asyncHandler(async(req,res)=>{
     return res.status(201).json(
         new ApiResponse(200,createdUser,"User Registerred Successfully!")
     )
-
+   
 })
+
+
+
 
 export {registerUser}
