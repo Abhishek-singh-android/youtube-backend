@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller.js";
+import { loginUser, logout, refreshAccessToken, registerUser } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 const router = Router()
 
 // yaha jo bhi userRoute se aa rahe honge unhe hum "/register" route par forward kar denge ab route likhne ke baad hum batate hai ki konsa method hum is route
@@ -26,5 +27,14 @@ router.route("/register").post(
         }
     ]),
     registerUser)
+
+router.route("/login").post(loginUser)
+
+// ab yaha hum use karenge apna middleware jo humne auth.middleware mein likha tha toh yaha hum logout route par jane se pehle verify karwana chahte hai jwt ko 
+// toh hum post() method mein pehle verifyJWT karenge uske baad logoutUser function ko chalayenge isliye hum use karte hai next() function ka req,res ke baad mein jisse woh next argument or function ko execute kare
+router.route("/logout").post(verifyJWT,logout)    
+
+// ab yaha hum woh route bana rahe hai jab user ka accessToken expire ho jata hai aur new token user ko dena hota hai
+router.route("/refresh-token").post(refreshAccessToken)
 
 export default router;
