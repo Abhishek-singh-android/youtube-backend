@@ -290,8 +290,146 @@ try {
 } catch (error) {
     throw new ApiError(401,error?.message || "Invalid refresh token")
 }
+})
 
 
+// change password => yaha hume user se current password change karana hai
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+    // ab yaha par mujhe yeh check karne ki jarurat nahi hai ki user already logged in hai ya nahi,cookies hai ya nahi kyunki jab route banayenge yaha par use kar lenge verifyJWT middleware ko
+    // ab jab user se aap currentPassword change karate ho toh yeh aap par depend karta hai ki aapko kitne fields lene hai user se aur yeh hum lenge req.body se
+
+    const {oldPassword,newPassword,confirmPassword} = req.body;
+
+    // waise hume jarurat nahi hai confirm password ki lekin agar chahiye hai toh hum simple check laga rahe hai ki agar newPassword aur confirmPassword same nahi hai toh error throw kar do
+    // if(!(newPassword===confirmPassword)){
+    //     throw new ApiError(400,"new password and confirm password are not same")
+    // }
+
+    // ab sabse pehle hum purane user ko find karte hai ab sabse pehle toh mujhe user chahiye hoga tabhi toh unke ander field mein jaa kar password verify karwa paunga ab user kaise lu toh agar user password change kar paa raha hai matlab woh logged in toh hai aur yeh logged in kaise ho payega kyunki middleware laga hai aur middleware karta hai req.user jo hum pehle use kar chuke hai auth.moddleware.js file mein toh waha se hum user ki id nikal lenge
+    // toh ab userid ke basis par hum user ko find kar sakte hai database se
+    const user = await User.findById(req.user?._id)
+
+    // ab jab hamare pass user aa gaya hai toh toh user model mein jo bhi hai woh sab mere pass aa gaya hoga toh humne user model mein ek function banaya tha isPasswordCorrect() karke  toh ismein pass kar denge purana password aur agar woh database mein present hai toh woh hume true return kar dega otherwise woh false return karega
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    // ab agar password correct nahi hai yani false aaya hai toh error throw kar denge
+    if (!isPasswordCorrect) {
+        throw new ApiError(400,"Invalid old password")
+    }
+
+    // ab agar yaha tak aa gaye hai matlab oldPassword correct tha toh newPassword set kar denge ab
+    user.password = newPassword;
+    // ab jaise hi newPassword set kiya toh ab hum uss password ko save kara lenge database mein toh jaise hi password save karane jayenge toh password toh ho gaya hai modify toh user.model.js mein ek pre hook chalega jo is new password ko encrypt bhi kar dega aur finally woh new password database mein save ho jayega
+    await user.save({validateBeforeSave:false})
+
+    // ab user ko ek response send kar denge ki password change ko gaya hai
+    return res.status(200)
+    .json(new ApiResponse(200,{},"Password changed successfully"))
+})
+
+
+// toh agar user logged in toh yahi toh hoga currentUser toh logged in user ko find karne ke liye hum pehle hi middleware bana chuke hai toh usse hi use kar lenge route mein
+// aur yaha par req.user mein get kar lenge uss user ko aur res mein send kar denge user ko json format mein
+const getCurrentUser = asyncHandler(async(req,res)=>{
+return res.status(200)
+// .json(200,req.user,"current user fetched successfully")
+.json(new ApiResponse(200,req.user,"current user fetched successfully"))
+})
+
+
+// ab user ko update karne ka bana lete hai
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+    // yaha aap dedo jo fields aapko update karani hai agar kahi par bhi aap file update kara rahe ho toh uska ek alag controller bana le alag endpoint bana le jyada achchha rahta hai waise toh aap ek hi file mein likh sakte hai 
+    // toh agar koi file update hai koi image upload hai toh uska alag controller banaya jata hai usse alag rakha jata hai better approach rahti hai ki user sirf apni image update karna chahta hai toh usko wahi ke wahi image ka save karne ka option aur update karne ka option dedo
+    // endpoint hit kar do pura user wapas se save karte hai toh text data bhi baar baar jata hai toh usko karne ji jarurat nahi hai kyunki usse congestion kam hota hai network ke ander files ke update ko alag aur user ke baki updates ko alag rakho
+
+    // toh humne do fields le li hai update karne ke liye 
+    const {fullName,email} = req.body;
+    
+    // ab ya toh user fullname ya toh email bheje update karne ke liye ya fir dono hi bhej de
+    if(!fullName || !email){
+        throw new ApiError(400,"All fields are required")
+    }
+
+    // yaha ayega user ko update karna
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+          // yaha hum update kar denge fullName aur email 
+          $set:{fullName,email}  
+        },
+        // ab new ko true karne se ye hoga ki update hone ke baad jo information hai woh return hoti hai yaha par aur uss information ko hum user variable mein save kar lenge
+        {new:true},
+        // ab hum nahi chahte ki updated jo user aaye usmein password field return ho kar na aaye toh select mein password de denge
+    ).select("-password")
+
+    return res.status(200)
+    .json(new ApiResponse(200,user,"Account details updated successfully"))
+})
+
+// ab hum dekhte hai ki files hume kaise update karana hai toh files upload karate time aapko middleware ka dyan rakhna padega kyunki first middleware hume lagana padega multer taki files aap accept kar pao 
+// aur wahi user update kar payenge jo logged in ho warna har koi thodi naa update kar payega jo logged in ho wahi toh update karega toh dusri middleware aa gayi loggedin user status find karne ki
+// toh yeh dono middleware ka use routing ke time par lagana padega
+const updateUserAvatar = asyncHandler(async(req,res)=>{
+    // ab hume req.file milega multer middleware se aur kyunki hum ek hi file upload karenge avatar toh hum req.files nahi req.file lenge
+    const avatarLocalPath = req.file?.path;
+
+    if(!avatarLocalPath){
+        throw new ApiError(400,"Avatar file is missing")
+    }
+
+    // ab hum upload kara lenge local file ko jo avatar image file hai
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    // ab jo avatar upload kiya hai usme agar url nahi hai toh problem hai toh error throw kar denge 
+    if(!avatar.url){
+        throw new ApiError(400,"Error while uploading on avatar")
+    }
+
+    // ab avatar ko update kar denge
+   const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:{
+                avatar:avatar.url
+            }
+        },
+        {new:true})
+        .select("-password")
+
+        return res.status(200)
+        .json(new ApiResponse(200,user,"avatarImage uploaded successfully"))
+
+})
+
+
+const updateUserCoverImage = asyncHandler(async(req,res)=>{
+    // ab hume req.file milega multer middleware se aur kyunki hum ek hi file upload karenge avatar toh hum req.files nahi req.file lenge
+    const coverImageLocalPath = req.file?.path;
+
+    if(!coverImageLocalPath){
+        throw new ApiError(400,"Avatar file is missing")
+    }
+
+    // ab hum upload kara lenge local file ko jo avatar image file hai
+    const coverImage = await uploadOnCloudinary(avatarLocalPath)
+
+    // ab jo avatar upload kiya hai usme agar url nahi hai toh problem hai toh error throw kar denge 
+    if(!coverImage.url){
+        throw new ApiError(400,"Error while uploading on avatar")
+    }
+
+    // ab avatar ko update kar denge
+   const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:{
+                coverImage:coverImage.url
+            }
+        },
+        {new:true})
+        .select("-password")
+
+        return res.status(200)
+        .json(new ApiResponse(200,user,"coverImage uploaded successfully"))
 
 })
 
@@ -299,4 +437,6 @@ try {
 
 
 
-export {registerUser,loginUser,logout,refreshAccessToken}
+
+export {registerUser,loginUser,logout,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage}
+
